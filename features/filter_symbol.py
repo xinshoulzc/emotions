@@ -7,7 +7,7 @@ import emoji
 from constants import *
 from features.utils import *
 
-num_pattern = re.compile(r"[-+]?[0-9]\d*\.\d+|[-+]?\d+")
+num_pattern = re.compile(r"[-+]?[0-9]\d*\.\d+|[-+]\d+/\d+|[-+]?\d+")
 url_pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
 
 @support_list
