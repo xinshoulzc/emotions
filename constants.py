@@ -29,15 +29,24 @@ FILTER_MARKS = ". : \" \' | \\ [ ] ( ) * @ # $ % ^ & + = \n ” “ \t".split(" 
 
 params = model_params.TINY_PARAMS
 
-# adding params
+# adding transformer params
 params.update(max_length=ENC_LEN)
-params.update(default_batch_size=4)
+# params.update(default_batch_size=4)
 
 # minimal frequence of words, words' frequence < MIN_F are treated unk
 MIN_F = 2
 
+# max frequence of words, words' frequence must < MIN_F
+MAX_F = 1000000
+
 # max vocab size
 MAX_VOCAB_SIZE = 10000
 
+# params in ml
+
+# max epoch
+MAX_EPOCH = 1000
+# learning rate
+LR = 1e-3
 
 # print(FILTER_MARKS)
