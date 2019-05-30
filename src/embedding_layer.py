@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import tensorflow as tf  # pylint: disable=g-bad-import-order
 
-import model_utils
+from src import model_utils
 # from official.utils.accelerator import tpu as tpu_utils
 
 

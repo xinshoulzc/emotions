@@ -130,9 +130,10 @@ class Attention(tf.layers.Layer):
     logits += bias
     weights = tf.nn.softmax(logits, name="attention_weights")
 
-    # weights = tf.cond(self.train, tf.nn.dropout(weights, 1.0 - self.attention_dropout), weights)
-    if self.train:
-      weights = tf.nn.dropout(weights, 1.0 - self.attention_dropout)
+    weights = tf.cond(self.train, 
+      lambda: tf.nn.dropout(weights, 1.0 - self.attention_dropout), lambda: weights)
+    # if self.train:
+    #   weights = tf.nn.dropout(weights, 1.0 - self.attention_dropout)
     attention_output = tf.matmul(weights, v)
 
     # Recombine heads --> [batch_size, length, hidden_size]

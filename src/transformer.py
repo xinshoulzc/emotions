@@ -24,12 +24,14 @@ from __future__ import print_function
 
 import tensorflow as tf  # pylint: disable=g-bad-import-order
 
-import attention_layer
-import beam_search
-import embedding_layer
-import ffn_layer
-import model_utils
-from tokenizer import EOS_ID
+from src import attention_layer
+from src import beam_search
+from src import embedding_layer
+from src import ffn_layer
+from src import model_utils
+# TODO:
+EOS_ID = 1
+# from src.tokenizer import EOS_ID
 
 _NEG_INF = -1e9
 
@@ -60,7 +62,12 @@ class Transformer(object):
         params["vocab_size"], params["hidden_size"],
         method="gather")
     self.encoder_stack = EncoderStack(params, train)
-    self.decoder_stack = DecoderStack(params, train)
+
+    # special for emotion analysis
+    self.final_layer = ffn_layer.final_layer(
+          params["hidden_size"], params["filter_size"], 2,
+          params["relu_dropout"], train, params["allow_ffn_pad"])
+    # self.decoder_stack = DecoderStack(params, train)
 
   def __call__(self, inputs, targets=None):
     """Calculate target logits or inferred target sequences.
@@ -92,11 +99,17 @@ class Transformer(object):
 
       # Generate output sequence if targets is None, or return logits if target
       # sequence is known.
-      if targets is None:
-        return self.predict(encoder_outputs, attention_bias)
-      else:
-        logits = self.decode(targets, encoder_outputs, attention_bias)
-        return logits
+
+      # special for emotion analysis
+      inputs_padding = model_utils.get_padding(inputs)
+      logits = self.final_layer(encoder_outputs, inputs_padding)
+
+      return logits
+      # if targets is None:
+      #   return self.predict(encoder_outputs, attention_bias)
+      # else:
+      #   logits = self.decode(targets, encoder_outputs, attention_bias)
+      #   return logits
 
   def encode(self, inputs, attention_bias):
     """Generate continuous representation for inputs.
@@ -120,9 +133,12 @@ class Transformer(object):
             length, self.params["hidden_size"])
         encoder_inputs = embedded_inputs + pos_encoding
 
-      if self.train:
-        encoder_inputs = tf.nn.dropout(
-            encoder_inputs, 1 - self.params["layer_postprocess_dropout"])
+      encoder_inputs = tf.cond(self.train, 
+        lambda: tf.nn.dropout(encoder_inputs, 1 - self.params["layer_postprocess_dropout"]), 
+        lambda: encoder_inputs)
+      # if self.train:
+      #   encoder_inputs = tf.nn.dropout(
+      #       encoder_inputs, 1 - self.params["layer_postprocess_dropout"])
 
       return self.encoder_stack(encoder_inputs, attention_bias, inputs_padding)
 
@@ -283,8 +299,10 @@ class PrePostProcessingWrapper(object):
     y = self.layer(y, *args, **kwargs)
 
     # Postprocessing: apply dropout and residual connection
-    if self.train:
-      y = tf.nn.dropout(y, 1 - self.postprocess_dropout)
+    y = tf.cond(self.train,
+      lambda: tf.nn.dropout(y, 1 - self.postprocess_dropout), lambda: y)
+    # if self.train:
+    #   y = tf.nn.dropout(y, 1 - self.postprocess_dropout)
     return x + y
 
 

@@ -23,6 +23,9 @@ class Vocab(object):
         self._count += 1
         if self._count > max_size:
           raise ValueError('Too many words: >%d.' % max_size)
+    
+    # padding value must be 0 which may be same as the default padding value in transformer 
+    assert self._word_to_id[PAD_MARK.encode("utf-8")] == 0
 
   def CheckVocab(self, word):
     if word not in self._word_to_id:

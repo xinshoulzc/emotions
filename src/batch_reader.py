@@ -35,6 +35,11 @@ class Batcher(object):
             tf.pad([x], [[0, 0], [0, self._hps["max_length"] - l]], constant_values=PAD_MARK.encode("utf-8")), y, l
         ))
 
+        # squeeze x
+        dataset = dataset.map(lambda x, y, l:(
+            tf.squeeze(x), tf.squeeze(y), l
+        ))
+
         # shuffle
         dataset = dataset.shuffle(buffer_size=self._hps["default_batch_size"]*500)
 
