@@ -149,7 +149,5 @@ class final_layer(tf.layers.Layer):
         dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
       output = tf.reshape(output, [batch_size, length * self.filter_size])
       output = tf.matmul(output, w)
-      # output = tf.reduce_mean(output, axis=-1)
-      print()
       
     return output

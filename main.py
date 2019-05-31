@@ -54,8 +54,8 @@ def convert_to_idx(voc, inputs):
   return vocab_table.lookup(inputs)
 
 def predict(logits):
-  logits = tf.nn.softmax(logits)
-  return logits
+  eval_op = tf.argmax(logits, axis=1)
+  return eval_op
 
 def train(logits, targets):
   # adam params
@@ -77,9 +77,23 @@ def train(logits, targets):
   train_op = [opt.apply_gradients(grads), loss]
   return train_op
 
+def get_error(predicted_labels, true_labels, threshold):
+  assert len(predicted_labels) == len(true_labels)
+  predicted_labels = map(lambda x: 1 if x >= threshold else 0, predicted_labels)
+  print(predicted_labels, true_labels)
+  TT, TF, FF, FT = 0, 0, 0, 0
+  for p, t in zip(predicted_labels, true_labels):
+    if p == t and t == 1: TT += 1
+    elif p == t and t == 0: FF += 1
+    elif p != t and t == 1: TF += 1
+    else: FT += 1
+  
+  print("recall: ", TT / (TF + TT), " precision: ", (TT + FF) / (TT + TF + FT + FF))
+
 def main():
-  reader = batch_reader.Batcher(TRAIN_INPUT_FILEPATH, params)
-  sentences, labels, lengths = reader.get_batch()
+  train_reader = batch_reader.Batcher(TRAIN_INPUT_FILEPATH, params)
+  eval_reader = batch_reader.Batcher(EVAL_INPUT_FILEPATH, params)
+  sentences, labels, lengths = train_reader.get_batch()
   word_voc = vocab.Vocab(WORD_VOC_FILEPATH, MAX_VOCAB_SIZE, MIN_F)
   word_voc_size = word_voc.NumIds()
   # update vocab size in params
@@ -94,6 +108,7 @@ def main():
   model = transformer.Transformer(params, placeholders["is_training"])
   logits = model(inputs_idx, targets)
   train_op = train(logits, targets)
+  eval_op = predict(logits)
   
   gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
   sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
@@ -110,7 +125,7 @@ def main():
         sentences_epoch, label_epoch, length_epoch = sess.run([sentences, labels, lengths])
       except tf.errors.OutOfRangeError:
         # end of files in dataset
-        sentences, labels, lengths = reader.get_batch()
+        sentences, labels, lengths = train_reader.get_batch()
 
       _, loss = sess.run(train_op, {
           inputs: sentences_epoch,
@@ -120,12 +135,22 @@ def main():
       if epoch % 10 == 0: print("epoch : ", epoch, " loss : ", loss)
       epoch += 1
       if epoch % 10 == 0:
-        sentences_epoch, label_epoch, length_epoch = sess.run([sentences, labels, lengths])
-        ans = sess.run(logits, {
-          inputs: sentences_epoch,
-          targets: label_epoch,
-          is_training: False,
-        })
+        eval_sentences, eval_labels, eval_lengths = eval_reader.get_batch(shuffle=False)
+        predicted_labels, true_labels, eof = [], [], False
+        while True:
+          try:
+            sentences_epoch, label_epoch, length_epoch = sess.run([eval_sentences, eval_labels, eval_lengths])
+          except tf.errors.OutOfRangeError:
+            eof = True
+          ans = sess.run(eval_op, {
+            inputs: sentences_epoch,
+            targets: label_epoch,
+            is_training: False,
+          })
+          predicted_labels.extend(ans.tolist())
+          true_labels.extend(label_epoch.tolist())
+        
+        get_error(predicted_labels, true_labels, 0.5)
 
 
 if __name__ == "__main__":

@@ -9,9 +9,10 @@ RAW_TRAIN_FILEPATH = os.path.join(RAW_DIR, TRAIN_FILENAME)
 WORD_VOC_FILEPATH = os.path.join("data", "train_voc")
 
 TRAIN_INPUT_FILEPATH = os.path.join("data", "train", "train")
+EVAL_INPUT_FILEPATH = os.path.join("data", "eval", "eval")
 
 ENC_LEN = 100
-# sample size: 6328
+# sample size: 6327
 # top_len50: [306, 201, 185, 177, 163, 148, 142, 138, 128, 122, 115, 110, 109, 106, 98, 96, 93, 92, 91, 90, 90, 89, 88, 87, 85, 85, 84, 84, 83, 82, 82, 81, 81, 80, 80, 80, 79, 79, 79, 78, 78, 76, 76, 76, 76, 76, 75, 75, 74, 74]
 
 # marks
@@ -48,5 +49,7 @@ MAX_VOCAB_SIZE = 10000
 MAX_EPOCH = 1000
 # learning rate
 LR = 1e-3
+# random seed
+SEED = 123456789
 
 # print(FILTER_MARKS)

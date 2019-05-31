@@ -6,7 +6,7 @@ class Batcher(object):
     def __init__(self, data_paths, hps):
         self._data_paths = data_paths
         self._hps = hps
-        self._batch = self._read_dataset()
+        self._dataset = self._read_dataset()
 
     def _read_dataset(self):
         dataset = tf.data.TextLineDataset(self._data_paths)
@@ -40,15 +40,14 @@ class Batcher(object):
             tf.squeeze(x), tf.squeeze(y), l
         ))
 
-        # shuffle
-        dataset = dataset.shuffle(buffer_size=self._hps["default_batch_size"]*500)
-
-        # specify batch size
-        batch = dataset.batch(self._hps["default_batch_size"])
-
-        return batch
+        return dataset
     
-    def get_batch(self):
-        iterator = self._batch.make_one_shot_iterator()
+    def get_batch(self, shuffle=True):
+        if shuffle:
+            dataset = self._dataset.shuffle(buffer_size=self._hps["default_batch_size"]*500)
+        else:
+            dataset = self._dataset
+        dataset = dataset.batch(self._hps["default_batch_size"])
+        iterator = dataset.make_one_shot_iterator()
         next_element = iterator.get_next()
         return next_element
