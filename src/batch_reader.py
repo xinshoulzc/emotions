@@ -42,12 +42,15 @@ class Batcher(object):
 
         return dataset
     
-    def get_batch(self, shuffle=True):
+    def get_batch(self, shuffle=True, batch_size=None):
         if shuffle:
             dataset = self._dataset.shuffle(buffer_size=self._hps["default_batch_size"]*500)
         else:
             dataset = self._dataset
-        dataset = dataset.batch(self._hps["default_batch_size"])
+        if batch_size is None:
+            dataset = dataset.batch(self._hps["default_batch_size"])
+        else:
+            dataset = dataset.batch(batch_size)
         iterator = dataset.make_one_shot_iterator()
         next_element = iterator.get_next()
         return next_element

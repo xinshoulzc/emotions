@@ -129,11 +129,21 @@ def Gen_voc():
     vocab.WriteVocab(voc, WORD_VOC_FILEPATH)
 
 def test_predict_main(output_filepath):
-    data = predict_main(TEST_INPUT_FILEPATH)
+    data, _, _ = predict_main(TEST_INPUT_FILEPATH)
     cout = codecs.open(output_filepath, "w", encoding="utf-8")
     for idx, line in enumerate(data):
         cout.write(str(idx + 1) + "," + "%.8f" % line)
         if data[-1] != line: cout.write("\n")
+    cout.close()
+
+def get_bad_case(output_filepath):
+    predicted_labels, true_labels, all_sentences = predict_main(EVAL_INPUT_FILEPATH)
+    cout = codecs.open(output_filepath, "w", encoding="utf-8")
+    for idx, line in enumerate(predicted_labels):
+        if true_labels[idx] == 1 and predicted_labels[idx] <= 0.9:
+            cout.write(all_sentences[idx] + " " + predicted_labels[idx] + " " + true_labels[idx] + "\n")
+        if true_labels[idx] == 0 and predicted_labels[idx] >= 0.1:
+            cout.write(all_sentences[idx] + " " + predicted_labels[idx] + " " + true_labels[idx] + "\n")
     cout.close()
 
 if __name__ == "__main__":

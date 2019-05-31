@@ -61,13 +61,12 @@ def predict_main(filepath):
     model_file = model_file = tf.train.latest_checkpoint(MODEL_PATH)
     saver.restore(sess, model_file)
     print("Running Predicting")
-    predicted_labels, true_labels, eof = [], [], False
+    predicted_labels, true_labels, all_sentences = [], [], []
     while True:
       try:
         sentences_epoch, label_epoch, length_epoch = sess.run([sentences, labels, lengths])
         print(sentences_epoch.shape)
       except tf.errors.OutOfRangeError:
-        eof = True
         break
 
       ans = sess.run(logits, {
@@ -75,18 +74,14 @@ def predict_main(filepath):
         targets: label_epoch,
         is_training: False
       })
+      all_sentences.extend(sentences_epoch.tolist())
       predicted_labels.extend(ans.tolist())
       print(len(predicted_labels))
       true_labels.extend(label_epoch.tolist())
-      if eof: break
   
-  ret = [i[1] for i in predicted_labels]
-  true_labels = " ".join([str(i) for i in true_labels])
-  predicted_labels = " ".join([str(i[1]) for i in predicted_labels])
-  # print(true_labels)
-  # print(predicted_labels)
+  predicted_labels = [i[1] for i in predicted_labels]
 
-  return ret
+  return predicted_labels, true_labels, all_sentences
 
 if __name__ == "__main__":
   # Gen_test()
