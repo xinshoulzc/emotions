@@ -1,11 +1,13 @@
 from tqdm import tqdm
 import tensorflow as tf
 import numpy as np
+import codecs
 
 from features import utils, filter_symbol, vocab
 from constants import *
 from src import batch_reader
 from main import *
+from predict_results import *
 
 def test_batch():
     reader = batch_reader.Batcher(TRAIN_INPUT_FILEPATH, params)
@@ -82,6 +84,7 @@ def test_main():
 def Gen_voc():
     filepath = RAW_TRAIN_FILEPATH
     data = list(utils.load_raw(filepath))
+    np.random.seed(SEED)
     voc = {
         PAD_MARK: MAX_F,
         UNK_MARK: MIN_F,
@@ -93,32 +96,52 @@ def Gen_voc():
         END_MARK: MIN_F,
         ENTER_MARK: MIN_F
     }
-    cout = open(TRAIN_INPUT_FILEPATH, "w", encoding="utf-8")
-    line = ""
+    train_cout = open(TRAIN_INPUT_FILEPATH, "w", encoding="utf-8")
+    eval_cout = open(EVAL_INPUT_FILEPATH, "w", encoding="utf-8")
+    train_first, eval_first = 0, 0
     all_len =[]
     for idx, (sentences, label) in tqdm(enumerate(data)):
         cur_len = 0
+        is_training = np.random.randint(0, 9) != 0
         sentences = filter_symbol.special_marks(sentences)
         for sentence in sentences:
             cur_len += len(sentence)
-            voc = vocab.CreateVocab(sentence, voc)
+            if is_training: voc = vocab.CreateVocab(sentence, voc)
         if cur_len < 1: continue
         all_len.append(cur_len)
         # TODO: comma symbol should be removed ?
-        line += " ".join([" ".join(sentence) for sentence in sentences]) + "\t" + str(label)
-        cout.write(line)
-        line = "\n"
+        line = " ".join([" ".join(sentence) for sentence in sentences]) + "\t" + str(label)
+        if is_training:
+            if train_first != 0: 
+                train_cout.write("\n")
+            train_cout.write(line)
+            train_first += 1
+        else:
+            if eval_first != 0: 
+                eval_cout.write("\n")
+            eval_cout.write(line)
+            eval_first += 1
 
     all_len = sorted(all_len, reverse=False)
     print(len(all_len), all_len[:50])
-    cout.close()
+    train_cout.close()
+    eval_cout.close()
     vocab.WriteVocab(voc, WORD_VOC_FILEPATH)
 
+def test_predict_main(output_filepath):
+    data = predict_main(TEST_INPUT_FILEPATH)
+    cout = codecs.open(output_filepath, "w", encoding="utf-8")
+    for idx, line in enumerate(data):
+        cout.write(str(idx + 1) + "," + "%.8f" % line)
+        if data[-1] != line: cout.write("\n")
+    cout.close()
 
 if __name__ == "__main__":
     # test_main()
     # Gen_voc()
+    # Gen_test()
     # check_word()
     # np.set_printoptions(threshold=np.inf)
-    test_batch()
+    # test_batch()
     # test_vocab()
+    test_predict_main(PREDICT_FILEPATH)

@@ -4,12 +4,19 @@ from src import model_params
 # filepath
 RAW_DIR = os.path.join("data", "raw")
 TRAIN_FILENAME = "train.csv"
-TEST_FILENAME = "20190520_test.csv"
+TEST_FILENAME = "20190527_test.csv"
 RAW_TRAIN_FILEPATH = os.path.join(RAW_DIR, TRAIN_FILENAME)
+RAW_TEST_FILEPATH = os.path.join(RAW_DIR, TEST_FILENAME)
 WORD_VOC_FILEPATH = os.path.join("data", "train_voc")
 
 TRAIN_INPUT_FILEPATH = os.path.join("data", "train", "train")
 EVAL_INPUT_FILEPATH = os.path.join("data", "eval", "eval")
+TEST_INPUT_FILEPATH = os.path.join("data", "test", "test")
+
+PREDICT_FILEPATH = os.path.join("data", "results", "out.csv")
+
+MODEL_PATH = "model"
+MODEL_NAME_00 = "emotion-detection-00"
 
 ENC_LEN = 100
 # sample size: 6327
@@ -51,5 +58,7 @@ MAX_EPOCH = 1000
 LR = 1e-3
 # random seed
 SEED = 123456789
+# threshold
+TH = 0.9
 
 # print(FILTER_MARKS)

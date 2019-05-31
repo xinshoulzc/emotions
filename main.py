@@ -60,7 +60,6 @@ def predict(logits):
 def train(logits, targets):
   # adam params
   opt = tf.train.AdamOptimizer(LR, beta1=0.9, beta2=0.999, epsilon=0.1)
-  print(targets, logits)
   cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
     labels=targets, logits=logits, name='cross_entropy')
   
@@ -80,7 +79,7 @@ def train(logits, targets):
 def get_error(predicted_labels, true_labels, threshold):
   assert len(predicted_labels) == len(true_labels)
   predicted_labels = map(lambda x: 1 if x >= threshold else 0, predicted_labels)
-  print(predicted_labels, true_labels)
+  # print(predicted_labels, true_labels)
   TT, TF, FF, FT = 0, 0, 0, 0
   for p, t in zip(predicted_labels, true_labels):
     if p == t and t == 1: TT += 1
@@ -109,10 +108,15 @@ def main():
   logits = model(inputs_idx, targets)
   train_op = train(logits, targets)
   eval_op = predict(logits)
+
+  bn_moving_vars = [g for g in tf.global_variables() if 'moving_mean' in g.name]
+  bn_moving_vars += [g for g in tf.global_variables() if 'moving_variance' in g.name]
+  saver = tf.train.Saver(tf.trainable_variables() + bn_moving_vars, max_to_keep=3)
   
   gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.9)
   sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, log_device_placement=False))
   init_op = tf.group([tf.initialize_all_variables(), tf.initialize_local_variables(), tf.tables_initializer()])
+  model_file = os.path.join(MODEL_PATH, MODEL_NAME_00)
 
   with sess.as_default():
     sess.run(init_op)
@@ -126,6 +130,7 @@ def main():
       except tf.errors.OutOfRangeError:
         # end of files in dataset
         sentences, labels, lengths = train_reader.get_batch()
+        sentences_epoch, label_epoch, length_epoch = sess.run([sentences, labels, lengths])
 
       _, loss = sess.run(train_op, {
           inputs: sentences_epoch,
@@ -136,12 +141,12 @@ def main():
       epoch += 1
       if epoch % 10 == 0:
         eval_sentences, eval_labels, eval_lengths = eval_reader.get_batch(shuffle=False)
-        predicted_labels, true_labels, eof = [], [], False
+        predicted_labels, true_labels = [], []
         while True:
           try:
-            sentences_epoch, label_epoch, length_epoch = sess.run([eval_sentences, eval_labels, eval_lengths])
+              sentences_epoch, label_epoch, length_epoch = sess.run([eval_sentences, eval_labels, eval_lengths])
           except tf.errors.OutOfRangeError:
-            eof = True
+              break
           ans = sess.run(eval_op, {
             inputs: sentences_epoch,
             targets: label_epoch,
@@ -150,7 +155,8 @@ def main():
           predicted_labels.extend(ans.tolist())
           true_labels.extend(label_epoch.tolist())
         
-        get_error(predicted_labels, true_labels, 0.5)
+        get_error(predicted_labels, true_labels, 0.9)
+        saver.save(sess, model_file, global_step=epoch)
 
 
 if __name__ == "__main__":
